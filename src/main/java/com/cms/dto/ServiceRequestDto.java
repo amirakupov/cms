@@ -1,11 +1,9 @@
 package com.cms.dto;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
 import lombok.Data;
 
 @Data
-public class ServiceDto {
+public class ServiceRequestDto {
     private int id;
     private String slug;
     private String imageSrc;

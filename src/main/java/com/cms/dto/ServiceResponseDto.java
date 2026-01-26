@@ -1,0 +1,24 @@
+package com.cms.dto;
+
+import com.cms.entity.ServiceEntity;
+public record ServiceResponseDto(
+        int id,
+        String slug,
+        String imageSrc,
+        String serviceName,
+        long price,
+        String description,
+        String longDescription
+) {
+    public static ServiceResponseDto from(ServiceEntity entity){
+        return new ServiceResponseDto(
+                entity.getId(),
+                entity.getSlug(),
+                entity.getImageSrc(),
+                entity.getServiceName(),
+                entity.getPrice(),
+                entity.getDescription(),
+                entity.getLongDescription()
+        );
+    }
+}

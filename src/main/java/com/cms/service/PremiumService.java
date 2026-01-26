@@ -1,6 +1,6 @@
 package com.cms.service;
 
-import com.cms.dto.ServiceDto;
+import com.cms.dto.ServiceResponseDto;
 import com.cms.entity.ServiceEntity;
 import com.cms.repo.ServiceRepository;
 import org.springframework.stereotype.Service;
@@ -16,7 +16,7 @@ public class PremiumService {
         this.serviceRepository = serviceRepository;
     }
 
-    public List<ServiceEntity> listServices(ServiceDto serviceDto){
-        return serviceRepository.findAllServices(serviceDto.getId());
+    public List<ServiceResponseDto> listServices(){
+        return serviceRepository.findAll().stream().map(ServiceResponseDto::from).toList();
     }
 }
