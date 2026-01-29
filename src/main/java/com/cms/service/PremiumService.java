@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import com.cms.dto.ServiceRequestDto;
 import com.cms.dto.ServiceResponseDto;
 import com.cms.entity.ServiceEntity;
 import com.cms.repo.ServiceRepository;
@@ -23,5 +24,10 @@ public class PremiumService {
 
     public ServiceResponseDto getOneService(int id){
         return serviceRepository.findById(id).map(ServiceResponseDto::from).orElseThrow(()-> new RuntimeException("Service not found"));
+    }
+
+    public ServiceResponseDto createNewService(ServiceRequestDto newService) {
+        ServiceEntity saved = serviceRepository.save(ServiceRequestDto.toEntity(newService));
+        return ServiceResponseDto.from(saved);
     }
 }

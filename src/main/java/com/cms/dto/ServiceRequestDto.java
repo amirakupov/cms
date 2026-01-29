@@ -1,14 +1,25 @@
 package com.cms.dto;
 
-import lombok.Data;
+import com.cms.entity.ServiceEntity;
 
-@Data
-public class ServiceRequestDto {
-    private int id;
-    private String slug;
-    private String imageSrc;
-    private String serviceName;
-    private long price;
-    private String description;
-    private String longDescription;
+public record ServiceRequestDto (
+    String slug,
+    String imageSrc,
+    String serviceName,
+    long price,
+    String description,
+    String longDescription
+){
+    public static ServiceEntity toEntity(ServiceRequestDto serviceRequestDto){
+        ServiceEntity e = new ServiceEntity();
+        e.setSlug(serviceRequestDto.slug);
+        e.setImageSrc(serviceRequestDto.imageSrc());
+        e.setServiceName(serviceRequestDto.serviceName());
+        e.setPrice(serviceRequestDto.price());
+        e.setDescription(serviceRequestDto.description());
+        e.setLongDescription(serviceRequestDto.longDescription());
+        return e;
+
+    }
+
 }

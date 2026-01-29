@@ -1,12 +1,10 @@
 package com.cms.controller;
 
+import com.cms.dto.ServiceRequestDto;
 import com.cms.dto.ServiceResponseDto;
 import com.cms.entity.ServiceEntity;
 import com.cms.service.PremiumService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -26,5 +24,9 @@ public class Controller {
     @GetMapping("/service")
     public ServiceResponseDto getService(@RequestParam int id){
         return premiumService.getOneService(id);
+    }
+    @PostMapping("/service")
+    public ServiceResponseDto createService(@RequestBody ServiceRequestDto newService){
+        return premiumService.createNewService(newService);
     }
 }
