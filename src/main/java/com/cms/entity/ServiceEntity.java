@@ -1,22 +1,20 @@
 package com.cms.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Data
 @Entity
 @Table(name = "service")
 public class ServiceEntity {
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Id
-    private int id;
+    private Integer id;
     private String slug;
     private String imageSrc;
     private String serviceName;
     private long price;
     private String description;
+    @Column(length = 1000)
     private String longDescription;
 }

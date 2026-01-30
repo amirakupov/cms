@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: CMS-premium
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  datasource:
+    driverClassName: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/cms
+    username: amirakupov
+  security:
+    user:
+      name: admin
+      password: admin
+      roles: ADMIN
