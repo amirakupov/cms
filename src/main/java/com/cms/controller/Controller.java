@@ -6,6 +6,8 @@ import com.cms.dto.ServiceRequestDto;
 import com.cms.dto.ServiceResponseDto;
 import com.cms.service.AuthService;
 import com.cms.service.PremiumService;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,10 +24,29 @@ public class Controller {
         this.premiumService = premiumService;
         this.authService = authService;
     }
-
+    //Todo: change to void
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody LoginRequest loginRequest){
-        return authService.login(loginRequest);
+    public LoginResponse login(@RequestBody LoginRequest loginRequest, HttpServletResponse servletResponse){
+        String token = authService.loginAndGetToken(loginRequest);
+        ResponseCookie cookie = ResponseCookie.from("access_token", token)
+                .httpOnly(true)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(60 * 60)
+                .build();
+
+        servletResponse.addHeader("Set-Cookie", cookie.toString());
+        return LoginResponse.builder().token(token).build();
+    }
+    @PostMapping("/logout")
+    public void logout(HttpServletResponse servletResponse){
+        ResponseCookie cookie = ResponseCookie.from("access_token", "")
+                .httpOnly(true)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(0)
+                .build();
+        servletResponse.addHeader("Set-Cookie", cookie.toString());
     }
 
     @GetMapping("/services")

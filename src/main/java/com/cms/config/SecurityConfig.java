@@ -32,7 +32,6 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.GET, "/api/cms/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/cms/**").authenticated()
-
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
