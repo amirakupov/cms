@@ -4,7 +4,7 @@ import com.cms.entity.ServiceEntity;
 
 
 public record ServiceResponseDto(
-        int id,
+        Integer id,
         String slug,
         String imageSrc,
         String serviceName,

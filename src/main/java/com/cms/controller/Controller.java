@@ -1,9 +1,6 @@
 package com.cms.controller;
 
-import com.cms.dto.LoginRequest;
-import com.cms.dto.LoginResponse;
-import com.cms.dto.ServiceRequestDto;
-import com.cms.dto.ServiceResponseDto;
+import com.cms.dto.*;
 import com.cms.service.AuthService;
 import com.cms.service.PremiumService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -53,8 +50,24 @@ public class Controller {
     public List<ServiceResponseDto> getAllServices(){
         return premiumService.listServices();
     }
+
+    @GetMapping("/doctors")
+    public List<DoctorsResponseDto> getAllDoctors(){
+        return premiumService.listDoctors();
+    }
+
+    @GetMapping("/doctor")
+    public DoctorsResponseDto getDoctor(@RequestParam Integer id){
+        return premiumService.getOneDoctor(id);
+    }
+
+    @PostMapping("/doctor")
+    public DoctorsResponseDto createDoctor(@RequestBody DoctorRequestDto requestDto){
+        return premiumService.createNewDoctor(requestDto);
+    }
+
     @GetMapping("/service")
-    public ServiceResponseDto getService(@RequestParam int id){
+    public ServiceResponseDto getService(@RequestParam Integer id){
         return premiumService.getOneService(id);
     }
     @PostMapping("/service")
