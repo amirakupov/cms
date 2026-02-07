@@ -46,18 +46,13 @@ public class Controller {
         servletResponse.addHeader("Set-Cookie", cookie.toString());
     }
 
-    @GetMapping("/services")
-    public List<ServiceResponseDto> getAllServices(){
-        return premiumService.listServices();
-    }
-
     @GetMapping("/doctors")
     public List<DoctorsResponseDto> getAllDoctors(){
         return premiumService.listDoctors();
     }
 
-    @GetMapping("/doctor")
-    public DoctorsResponseDto getDoctor(@RequestParam Integer id){
+    @GetMapping("/doctor/{id}")
+    public DoctorsResponseDto getDoctor(@PathVariable Integer id){
         return premiumService.getOneDoctor(id);
     }
 
@@ -66,12 +61,29 @@ public class Controller {
         return premiumService.createNewDoctor(requestDto);
     }
 
-    @GetMapping("/service")
-    public ServiceResponseDto getService(@RequestParam Integer id){
+    @PatchMapping("/doctors/{id}")
+    public DoctorsResponseDto updateDoctor(@PathVariable Integer id,
+                                            @RequestBody DoctorRequestDto requestDto){
+        return premiumService.patchDoctor(id, requestDto);
+    }
+
+    @GetMapping("/services")
+    public List<ServiceResponseDto> getAllServices(){
+        return premiumService.listServices();
+    }
+
+    @GetMapping("/service/{id}")
+    public ServiceResponseDto getService(@PathVariable Integer id){
         return premiumService.getOneService(id);
     }
     @PostMapping("/service")
     public ServiceResponseDto createService(@RequestBody ServiceRequestDto newService){
         return premiumService.createNewService(newService);
+    }
+    @PatchMapping("/service/{id}")
+    public ServiceResponseDto patchService(@PathVariable Integer id,
+                                           @RequestBody ServiceRequestDto requestDto)
+    {
+        return premiumService.patchService(id, requestDto);
     }
 }

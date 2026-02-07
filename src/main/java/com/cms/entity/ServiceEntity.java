@@ -13,7 +13,7 @@ public class ServiceEntity {
     private String slug;
     private String imageSrc;
     private String serviceName;
-    private long price;
+    private Long price;
     private String description;
     @Column(length = 1000)
     private String longDescription;

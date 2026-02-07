@@ -9,10 +9,10 @@ import lombok.Data;
 public class DoctorsEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Id
-    Integer id;
-    String imgSrc;
-    String name;
-    String specialty;
+    private Integer id;
+    private String imgSrc;
+    private String name;
+    private String specialty;
     @Column(length = 1000)
-    String bio;
+    private String bio;
 }

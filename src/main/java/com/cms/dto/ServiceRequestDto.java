@@ -6,7 +6,7 @@ public record ServiceRequestDto (
     String slug,
     String imageSrc,
     String serviceName,
-    long price,
+    Long price,
     String description,
     String longDescription
 ){

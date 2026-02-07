@@ -9,8 +9,11 @@ import com.cms.entity.ServiceEntity;
 import com.cms.repo.DoctorRepository;
 import com.cms.repo.ServiceRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
 public class PremiumService {
@@ -40,11 +43,33 @@ public class PremiumService {
         return doctorRepository.findAll().stream().map(DoctorsResponseDto::from).toList();
     }
     public DoctorsResponseDto getOneDoctor(Integer id){
-        return doctorRepository.findById(id).map(DoctorsResponseDto::from).orElseThrow(()-> new RuntimeException("Doctor not found"));
+        return doctorRepository.findById(id).map(DoctorsResponseDto::from).orElseThrow(()-> new ResponseStatusException(NOT_FOUND, "Doctor not found"));
     }
 
     public DoctorsResponseDto createNewDoctor(DoctorRequestDto requestDto) {
         DoctorsEntity entity = doctorRepository.save(DoctorRequestDto.toEntity(requestDto));
         return DoctorsResponseDto.from(entity);
+    }
+
+    public DoctorsResponseDto patchDoctor(Integer id, DoctorRequestDto requestDto) {
+        DoctorsEntity entity = doctorRepository.findById(id).orElseThrow(()-> new ResponseStatusException(NOT_FOUND, "Doctor not found"));
+        if (requestDto.imgSrc() != null) entity.setImgSrc(requestDto.imgSrc());
+        if (requestDto.name() != null) entity.setName(requestDto.name());
+        if (requestDto.specialty() != null) entity.setSpecialty(requestDto.specialty());
+        if (requestDto.bio() != null) entity.setBio(requestDto.bio());
+
+        return DoctorsResponseDto.from(doctorRepository.save(entity));
+    }
+
+    public ServiceResponseDto patchService(Integer id, ServiceRequestDto requestDto) {
+        ServiceEntity entity = serviceRepository.findById(id).orElseThrow(()-> new ResponseStatusException(NOT_FOUND, "Service not found"));
+        if (requestDto.slug() != null) entity.setSlug(requestDto.slug());
+        if (requestDto.serviceName() != null) entity.setServiceName(requestDto.serviceName());
+        if (requestDto.price() != null) entity.setPrice(requestDto.price());
+        if (requestDto.description() != null) entity.setDescription(requestDto.description());
+        if (requestDto.longDescription() != null) entity.setLongDescription(requestDto.longDescription());
+        if (requestDto.imageSrc() != null) entity.setImageSrc(requestDto.imageSrc());
+
+        return ServiceResponseDto.from(serviceRepository.save(entity));
     }
 }
