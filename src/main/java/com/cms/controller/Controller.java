@@ -45,7 +45,6 @@ public class Controller {
                 .build();
         servletResponse.addHeader("Set-Cookie", cookie.toString());
     }
-
     @GetMapping("/doctors")
     public List<DoctorsResponseDto> getAllDoctors(){
         return premiumService.listDoctors();
