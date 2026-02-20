@@ -5,12 +5,13 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
-  datasource:
-    driverClassName: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/cms
-    username: amirakupov
-  security:
-    user:
-      name: admin
-      password: admin
-      roles: ADMIN
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+app:
+  upload-dir: ./uploads
+jwt:
+  secret: "bmlnZ2EgZ2lnZ2EgbmlnZ2EgYmxhIGJsYSBuaWdnYSBmdWNrIGVuY3J5cHRpb24gbmlnZ2EgbmFtZQ=="
+  expirationMs: 86400000
+
