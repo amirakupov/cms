@@ -14,3 +14,8 @@ spring:
       name: admin
       password: admin
       roles: ADMIN
+app:
+  upload-dir: ./uploads
+jwt:
+  secret: "bmlnZ2EgZ2lnZ2EgbmlnZ2EgYmxhIGJsYSBuaWdnYSBmdWNrIGVuY3J5cHRpb24gbmlnZ2EgbmFtZQ=="
+  expirationMs: 86400000
