@@ -11,7 +11,11 @@ import com.cms.repo.ServiceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -42,6 +46,51 @@ public class PremiumService {
     public List<DoctorsResponseDto> listDoctors() {
         return doctorRepository.findAll().stream().map(DoctorsResponseDto::from).toList();
     }
+
+    public List<DoctorsResponseDto> listDoctorsBySpeciality(String speciality){
+        return doctorRepository.findAll().stream()
+                .filter(s -> s.getSpecialty().equalsIgnoreCase(speciality))
+                .map(doctor -> DoctorsResponseDto.from(doctor))
+                .collect(Collectors.toList());
+    }
+
+    public List<ServiceResponseDto> listServicesSorted(String sortBy, String direction){
+        Comparator<ServiceEntity> comparator = switch (sortBy) {
+            case "price" -> Comparator.comparing(ServiceEntity::getPrice);
+            case "name" -> Comparator.comparing(ServiceEntity::getServiceName);
+        };
+        if (direction.equalsIgnoreCase("desc")){
+            comparator = comparator.reversed();
+        }
+        return serviceRepository.findAll().stream()
+                .sorted(comparator)
+                .map(ServiceResponseDto::from)
+                .toList();
+    }
+
+    public List<ServiceResponseDto> findCheapService(Long maxPrice, int limit){
+        return serviceRepository.findAll().stream()
+                .filter(s -> s.getPrice() <= maxPrice)
+                .sorted(Comparator.comparing(ServiceEntity::getPrice))
+                .limit(limit)
+                .map(ServiceResponseDto::from)
+                .toList();
+    }
+
+    public List<ServiceResponseDto> searchServices(String query){
+        return serviceRepository.findAll().stream()
+                .filter(s -> s.getServiceName().toLowerCase().contains(query))
+                .map(ServiceResponseDto::from)
+                .toList();
+    }
+
+    public Map<String, List<DoctorsResponseDto>> groupDoctorsBySpecialty(){
+        return doctorRepository.findAll().stream()
+                .filter(s -> !s.getSpecialty().equals(""))
+                .collect(Collectors.groupingBy(DoctorsEntity::getSpecialty,
+                        Collectors.mapping(DoctorsResponseDto::from, Collectors.toList())));
+    }
+
     public DoctorsResponseDto getOneDoctor(Integer id){
         return doctorRepository.findById(id).map(DoctorsResponseDto::from).orElseThrow(()-> new ResponseStatusException(NOT_FOUND, "Doctor not found"));
     }

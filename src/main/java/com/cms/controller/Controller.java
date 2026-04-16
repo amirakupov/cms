@@ -15,8 +15,7 @@ public class Controller {
     private final PremiumService premiumService;
 
     private final AuthService authService;
-
-
+    
     public Controller(PremiumService premiumService, AuthService authService) {
         this.premiumService = premiumService;
         this.authService = authService;
