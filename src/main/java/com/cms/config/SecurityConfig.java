@@ -29,9 +29,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/cms/login").permitAll()
-
                         .requestMatchers(HttpMethod.GET, "/api/cms/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/cms/**").authenticated()
+
+                        .requestMatchers(HttpMethod.POST, "/api/cms/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/cms/**").hasAnyRole("ADMIN", "EDITOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/cms/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
