@@ -1,12 +1,10 @@
 package com.cms.service;
 
-import com.cms.dto.DoctorRequestDto;
-import com.cms.dto.DoctorsResponseDto;
-import com.cms.dto.ServiceRequestDto;
-import com.cms.dto.ServiceResponseDto;
-import com.cms.entity.DoctorsEntity;
-import com.cms.entity.ServiceEntity;
+import com.cms.dto.*;
+import com.cms.entity.*;
+import com.cms.repo.BlogPostRepository;
 import com.cms.repo.DoctorRepository;
+import com.cms.repo.PageRepository;
 import com.cms.repo.ServiceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -24,10 +22,15 @@ public class PremiumService {
 
     private final ServiceRepository serviceRepository;
     private final DoctorRepository doctorRepository;
+    private final PageRepository pageRepository;
+    private final BlogPostRepository blogPostRepository;
 
-    public PremiumService(ServiceRepository serviceRepository, DoctorRepository doctorRepository) {
+    public PremiumService(ServiceRepository serviceRepository, DoctorRepository doctorRepository,
+                          PageRepository pageRepository, BlogPostRepository blogPostRepository) {
         this.serviceRepository = serviceRepository;
         this.doctorRepository = doctorRepository;
+        this.pageRepository = pageRepository;
+        this.blogPostRepository = blogPostRepository;
     }
 
     public List<ServiceResponseDto> listServices(){
@@ -58,6 +61,7 @@ public class PremiumService {
         Comparator<ServiceEntity> comparator = switch (sortBy) {
             case "price" -> Comparator.comparing(ServiceEntity::getPrice);
             case "name" -> Comparator.comparing(ServiceEntity::getServiceName);
+            default -> Comparator.comparing(ServiceEntity::getId);
         };
         if (direction.equalsIgnoreCase("desc")){
             comparator = comparator.reversed();
@@ -120,5 +124,76 @@ public class PremiumService {
         if (requestDto.imageSrc() != null) entity.setImageSrc(requestDto.imageSrc());
 
         return ServiceResponseDto.from(serviceRepository.save(entity));
+    }
+
+    // ── Pages ──
+
+    public List<PageResponseDto> listPages() {
+        return pageRepository.findAll().stream().map(PageResponseDto::from).toList();
+    }
+
+    public List<PageResponseDto> listPublishedPages() {
+        return pageRepository.findByStatus(PageStatus.PUBLISHED).stream().map(PageResponseDto::from).toList();
+    }
+
+    public PageResponseDto getPageBySlug(String slug) {
+        return pageRepository.findBySlug(slug).map(PageResponseDto::from)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Page not found"));
+    }
+
+    public PageResponseDto createPage(PageRequestDto requestDto) {
+        PageEntity saved = pageRepository.save(PageRequestDto.toEntity(requestDto));
+        return PageResponseDto.from(saved);
+    }
+
+    public PageResponseDto patchPage(Integer id, PageRequestDto requestDto) {
+        PageEntity entity = pageRepository.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Page not found"));
+        if (requestDto.slug() != null) entity.setSlug(requestDto.slug());
+        if (requestDto.title() != null) entity.setTitle(requestDto.title());
+        if (requestDto.body() != null) entity.setBody(requestDto.body());
+        if (requestDto.metaDescription() != null) entity.setMetaDescription(requestDto.metaDescription());
+        if (requestDto.status() != null) entity.setStatus(PageStatus.valueOf(requestDto.status()));
+        return PageResponseDto.from(pageRepository.save(entity));
+    }
+
+    public void deletePage(Integer id) {
+        if (!pageRepository.existsById(id)) throw new ResponseStatusException(NOT_FOUND, "Page not found");
+        pageRepository.deleteById(id);
+    }
+
+    // ── Blog Posts ──
+
+    public List<BlogPostResponseDto> listPublishedBlogPosts() {
+        return blogPostRepository.findByStatus(PageStatus.PUBLISHED).stream().map(BlogPostResponseDto::from).toList();
+    }
+
+    public List<BlogPostResponseDto> listAllBlogPosts() {
+        return blogPostRepository.findAll().stream().map(BlogPostResponseDto::from).toList();
+    }
+
+    public BlogPostResponseDto getBlogPostBySlug(String slug) {
+        return blogPostRepository.findBySlug(slug).map(BlogPostResponseDto::from)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Blog post not found"));
+    }
+
+    public BlogPostResponseDto createBlogPost(BlogPostRequestDto requestDto) {
+        BlogPostEntity saved = blogPostRepository.save(BlogPostRequestDto.toEntity(requestDto));
+        return BlogPostResponseDto.from(saved);
+    }
+
+    public BlogPostResponseDto patchBlogPost(Integer id, BlogPostRequestDto requestDto) {
+        BlogPostEntity entity = blogPostRepository.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Blog post not found"));
+        if (requestDto.slug() != null) entity.setSlug(requestDto.slug());
+        if (requestDto.title() != null) entity.setTitle(requestDto.title());
+        if (requestDto.body() != null) entity.setBody(requestDto.body());
+        if (requestDto.metaDescription() != null) entity.setMetaDescription(requestDto.metaDescription());
+        if (requestDto.keywords() != null) entity.setKeywords(requestDto.keywords());
+        if (requestDto.status() != null) entity.setStatus(PageStatus.valueOf(requestDto.status()));
+        return BlogPostResponseDto.from(blogPostRepository.save(entity));
+    }
+
+    public void deleteBlogPost(Integer id) {
+        if (!blogPostRepository.existsById(id)) throw new ResponseStatusException(NOT_FOUND, "Blog post not found");
+        blogPostRepository.deleteById(id);
     }
 }

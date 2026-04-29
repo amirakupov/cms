@@ -3,6 +3,7 @@ package com.cms.controller;
 import com.cms.dto.*;
 import com.cms.service.AuthService;
 import com.cms.service.PremiumService;
+import org.springframework.http.HttpStatus;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.*;
@@ -83,5 +84,73 @@ public class Controller {
                                            @RequestBody ServiceRequestDto requestDto)
     {
         return premiumService.patchService(id, requestDto);
+    }
+
+    // ── Pages ──
+
+    @GetMapping("/pages")
+    public List<PageResponseDto> getPublishedPages() {
+        return premiumService.listPublishedPages();
+    }
+
+    @GetMapping("/pages/all")
+    public List<PageResponseDto> getAllPages() {
+        return premiumService.listPages();
+    }
+
+    @GetMapping("/page/{slug}")
+    public PageResponseDto getPage(@PathVariable String slug) {
+        return premiumService.getPageBySlug(slug);
+    }
+
+    @PostMapping("/page")
+    public PageResponseDto createPage(@RequestBody PageRequestDto requestDto) {
+        return premiumService.createPage(requestDto);
+    }
+
+    @PatchMapping("/page/{id}")
+    public PageResponseDto patchPage(@PathVariable Integer id,
+                                     @RequestBody PageRequestDto requestDto) {
+        return premiumService.patchPage(id, requestDto);
+    }
+
+    @DeleteMapping("/page/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePage(@PathVariable Integer id) {
+        premiumService.deletePage(id);
+    }
+
+    // ── Blog Posts ──
+
+    @GetMapping("/blog")
+    public List<BlogPostResponseDto> getPublishedBlogPosts() {
+        return premiumService.listPublishedBlogPosts();
+    }
+
+    @GetMapping("/blog/all")
+    public List<BlogPostResponseDto> getAllBlogPosts() {
+        return premiumService.listAllBlogPosts();
+    }
+
+    @GetMapping("/blog/{slug}")
+    public BlogPostResponseDto getBlogPost(@PathVariable String slug) {
+        return premiumService.getBlogPostBySlug(slug);
+    }
+
+    @PostMapping("/blog")
+    public BlogPostResponseDto createBlogPost(@RequestBody BlogPostRequestDto requestDto) {
+        return premiumService.createBlogPost(requestDto);
+    }
+
+    @PatchMapping("/blog/{id}")
+    public BlogPostResponseDto patchBlogPost(@PathVariable Integer id,
+                                             @RequestBody BlogPostRequestDto requestDto) {
+        return premiumService.patchBlogPost(id, requestDto);
+    }
+
+    @DeleteMapping("/blog/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteBlogPost(@PathVariable Integer id) {
+        premiumService.deleteBlogPost(id);
     }
 }

@@ -16,6 +16,16 @@ spring:
       roles: ADMIN
 app:
   upload-dir: ./uploads
+
+yandex:
+  gpt:
+    api-key: ${YANDEX_GPT_API_KEY:your-api-key}
+    folder-id: ${YANDEX_GPT_FOLDER_ID:your-folder-id}
+    model: yandexgpt/latest
+
+content:
+  generation:
+    cron: "0 0 8 * * *"
 jwt:
   secret: "bmlnZ2EgZ2lnZ2EgbmlnZ2EgYmxhIGJsYSBuaWdnYSBmdWNrIGVuY3J5cHRpb24gbmlnZ2EgbmFtZQ=="
   expirationMs: 86400000
