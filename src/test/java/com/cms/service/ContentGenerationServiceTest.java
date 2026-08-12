@@ -1,28 +1,37 @@
 package com.cms.service;
 
+import com.cms.entity.BlogPostEntity;
+import com.cms.entity.PageStatus;
 import com.cms.repo.BlogPostRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ContentGenerationServiceTest {
 
     private BlogPostRepository repository;
+    private YandexGptService gptService;
     private ContentGenerationService service;
 
     @BeforeEach
     void setUp() {
         repository = mock(BlogPostRepository.class);
-        service = new ContentGenerationService(
-                mock(YandexGptService.class), repository, new ObjectMapper(), true);
+        gptService = mock(YandexGptService.class);
+        // Zero backoff: the retry-path test would otherwise sit through 15 seconds of sleeps.
+        service = new ContentGenerationService(gptService, repository, new ObjectMapper(), true, 0L);
     }
 
     @Test
@@ -99,5 +108,90 @@ class ContentGenerationServiceTest {
         ContentGenerationService.TopicChoice choice = service.pickTopic();
 
         assertThat(choice.repeatCount()).isEqualTo(1);
+    }
+
+    private static BlogPostEntity existingPost() {
+        BlogPostEntity post = new BlogPostEntity();
+        post.setId(7);
+        post.setSlug("stress-i-ego-vliyanie-na-zdorove");
+        post.setTitle("Стресс и его влияние на здоровье");
+        post.setBody("<p>Старый текст</p>");
+        post.setStatus(PageStatus.DRAFT);
+        post.setAiGenerated(true);
+        return post;
+    }
+
+    @Test
+    void regenerationSendsBothCurrentTextAndEditorInstruction() {
+        BlogPostEntity post = existingPost();
+        when(gptService.generate(anyString(), anyString())).thenReturn(
+                "{\"title\": \"Стресс и его влияние на здоровье\", \"body\": \"<p>Новый текст</p>\"}");
+        when(repository.saveAndFlush(any(BlogPostEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+        service.regenerate(post, "сократи и убери раздел про диагностику");
+
+        ArgumentCaptor<String> userPrompt = ArgumentCaptor.forClass(String.class);
+        verify(gptService).generate(anyString(), userPrompt.capture());
+        assertThat(userPrompt.getValue())
+                .contains("Старый текст")
+                .contains("сократи и убери раздел про диагностику");
+    }
+
+    @Test
+    void regenerationSanitizesTheNewHtml() {
+        BlogPostEntity post = existingPost();
+        when(gptService.generate(anyString(), anyString())).thenReturn(
+                "{\"title\": \"Стресс и его влияние на здоровье\","
+                        + " \"body\": \"<p>Текст</p><script>alert(1)</script>\"}");
+        when(repository.saveAndFlush(any(BlogPostEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+        service.regenerate(post, "правки");
+
+        assertThat(post.getBody()).doesNotContain("script").contains("Текст");
+    }
+
+    @Test
+    void regenerationKeepsSlugWhenTitleIsUnchanged() {
+        BlogPostEntity post = existingPost();
+        when(gptService.generate(anyString(), anyString())).thenReturn(
+                "{\"title\": \"Стресс и его влияние на здоровье\", \"body\": \"<p>Новый</p>\"}");
+        when(repository.saveAndFlush(any(BlogPostEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+        service.regenerate(post, "правки");
+
+        // uniqueSlug would otherwise see the post's own slug as taken and append "-1".
+        assertThat(post.getSlug()).isEqualTo("stress-i-ego-vliyanie-na-zdorove");
+        verify(repository, never()).findSlugsStartingWith(anyString());
+    }
+
+    @Test
+    void regenerationRederivesSlugWhenTitleChanged() {
+        BlogPostEntity post = existingPost();
+        when(gptService.generate(anyString(), anyString())).thenReturn(
+                "{\"title\": \"Как стресс влияет на сердце\", \"body\": \"<p>Новый</p>\"}");
+        when(repository.findSlugsStartingWith(anyString())).thenReturn(List.of());
+        when(repository.saveAndFlush(any(BlogPostEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+        service.regenerate(post, "правки");
+
+        assertThat(post.getSlug()).isEqualTo("kak-stress-vliyaet-na-serdtse");
+        assertThat(post.getTitle()).isEqualTo("Как стресс влияет на сердце");
+    }
+
+    @Test
+    void regenerationFailsLoudlyWhenTheModelKeepsReturningGarbage() {
+        BlogPostEntity post = existingPost();
+        when(gptService.generate(anyString(), anyString())).thenReturn("Извините, не могу помочь.");
+
+        assertThatThrownBy(() -> service.regenerate(post, "правки"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void systemPromptDemandsTheGeoStructure() {
+        // GEO hinges on a direct opening answer and an extractable FAQ block.
+        assertThat(service.systemPrompt())
+                .contains("Частые вопросы")
+                .contains("прямой сжатый ответ");
     }
 }

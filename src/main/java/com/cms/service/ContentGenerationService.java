@@ -28,7 +28,7 @@ public class ContentGenerationService {
     private static final Logger log = LoggerFactory.getLogger(ContentGenerationService.class);
 
     private static final int MAX_ATTEMPTS = 3;
-    private static final long RETRY_BACKOFF_MS = 5_000;
+    private static final long DEFAULT_RETRY_BACKOFF_MS = 5_000;
     private static final int META_DESCRIPTION_LIMIT = 160;
     private static final int KEYWORDS_LIMIT = 500;
 
@@ -41,6 +41,7 @@ public class ContentGenerationService {
     private final BlogPostRepository blogPostRepository;
     private final ObjectMapper objectMapper;
     private final boolean enabled;
+    private final long retryBackoffMs;
 
     private static final List<String> TOPICS = List.of(
             "Профилактика сердечно-сосудистых заболеваний",
@@ -59,10 +60,20 @@ public class ContentGenerationService {
                                     BlogPostRepository blogPostRepository,
                                     ObjectMapper objectMapper,
                                     @Value("${content.generation.enabled:true}") boolean enabled) {
+        this(gptService, blogPostRepository, objectMapper, enabled, DEFAULT_RETRY_BACKOFF_MS);
+    }
+
+    /** Test seam: lets unit tests exercise the retry path without waiting out the backoff. */
+    ContentGenerationService(YandexGptService gptService,
+                             BlogPostRepository blogPostRepository,
+                             ObjectMapper objectMapper,
+                             boolean enabled,
+                             long retryBackoffMs) {
         this.gptService = gptService;
         this.blogPostRepository = blogPostRepository;
         this.objectMapper = objectMapper;
         this.enabled = enabled;
+        this.retryBackoffMs = retryBackoffMs;
     }
 
     @Scheduled(cron = "${content.generation.cron:0 0 8 * * *}")
@@ -97,7 +108,7 @@ public class ContentGenerationService {
                 log.warn("Generation attempt {}/{} failed for topic '{}': {}",
                         attempt, MAX_ATTEMPTS, choice.topic(), e.getMessage());
                 if (attempt < MAX_ATTEMPTS) {
-                    sleepQuietly(RETRY_BACKOFF_MS * attempt);
+                    sleepQuietly(retryBackoffMs * attempt);
                 }
             }
         }
@@ -122,6 +133,59 @@ public class ContentGenerationService {
         post.setAiGenerated(true);
         post.setSourceTopic(choice.topic());
 
+        return saveWithSlugFallback(post, title);
+    }
+
+    /**
+     * Rewrites an existing post in place from the editor's notes. Retries transient GPT
+     * failures the same way the first generation does.
+     *
+     * @throws IllegalStateException if every attempt failed; the previous text is untouched
+     */
+    public BlogPostEntity regenerate(BlogPostEntity post, String instruction) {
+        RuntimeException lastFailure = null;
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                return applyRevision(post, instruction);
+            } catch (RuntimeException e) {
+                lastFailure = e;
+                log.warn("Revision attempt {}/{} failed for post {}: {}",
+                        attempt, MAX_ATTEMPTS, post.getId(), e.getMessage());
+                if (attempt < MAX_ATTEMPTS) {
+                    sleepQuietly(retryBackoffMs * attempt);
+                }
+            }
+        }
+        throw new IllegalStateException("Could not revise post " + post.getId(), lastFailure);
+    }
+
+    private BlogPostEntity applyRevision(BlogPostEntity post, String instruction) {
+        String raw = gptService.generate(systemPrompt(), revisionPrompt(post, instruction));
+        JsonNode node = parseJsonPayload(raw);
+
+        String title = requireText(node, "title");
+        String bodyHtml = requireText(node, "body");
+
+        post.setSlug(reslug(post, title));
+        post.setTitle(title);
+        post.setBody(Jsoup.clean(bodyHtml, ARTICLE_SAFELIST));
+        post.setMetaDescription(trim(node.path("metaDescription").asText(""), META_DESCRIPTION_LIMIT));
+        post.setKeywords(trim(node.path("keywords").asText(""), KEYWORDS_LIMIT));
+
+        return saveWithSlugFallback(post, title);
+    }
+
+    /**
+     * Re-derives the slug when the title actually changed. Skipping the unchanged case
+     * matters: uniqueSlug would find the post's own slug among the taken ones and append
+     * a pointless "-1" on every revision.
+     */
+    private String reslug(BlogPostEntity post, String newTitle) {
+        String base = SlugUtil.toSlug(newTitle);
+        return base.equals(post.getSlug()) ? post.getSlug() : uniqueSlug(base);
+    }
+
+    private BlogPostEntity saveWithSlugFallback(BlogPostEntity post, String title) {
         try {
             return blogPostRepository.saveAndFlush(post);
         } catch (DataIntegrityViolationException e) {
@@ -132,26 +196,52 @@ public class ContentGenerationService {
         }
     }
 
-    private String systemPrompt() {
+    String systemPrompt() {
         return """
                 Ты — медицинский копирайтер для сайта клиники.
-                Напиши SEO-оптимизированную статью для блога на 600–900 слов.
+                Напиши статью для блога на 700–1000 слов.
 
-                Требования к тексту:
-                - Не ставь диагнозов и не назначай лечение.
-                - Не выдумывай статистику, исследования и цитаты.
-                - Добавь в конце фразу о необходимости очной консультации врача.
+                СТРУКТУРА (от неё зависит попадание статьи в ответы поисковых AI):
+                - Первый абзац — прямой сжатый ответ на главный вопрос темы, 2–3 предложения.
+                  Начинай сразу с сути. Никаких «в современном мире», «как известно», «сегодня всё чаще».
+                - Подзаголовки <h2> формулируй как вопросы, которые люди задают вслух.
+                - Каждый раздел должен быть понятен сам по себе, без чтения предыдущих:
+                  не пиши «как сказано выше», «этот метод», «данный подход» — называй предмет явно.
+                - Абзацы короткие: 2–4 предложения.
+                - Где есть перечисление — <ul> или <ol>, а не сплошной текст.
+                - В конце раздел <h2>Частые вопросы</h2> и 3–5 пар:
+                  <h3>вопрос</h3><p>ответ в 1–3 предложения</p>.
+                - Самая последняя строка — фраза о необходимости очной консультации врача.
+
+                ЗАПРЕЩЕНО:
+                - Ставить диагнозы и назначать лечение.
+                - Выдумывать статистику, проценты, исследования, цитаты, имена врачей.
+                - Называть препараты и дозировки.
+                - Вода и общие рассуждения без конкретики.
 
                 Ответ верни строго в JSON формате, одним объектом:
                 {
-                  "title": "заголовок статьи",
-                  "body": "полный текст статьи в HTML формате (h2, h3, p, ul, ol, li, strong, em)",
-                  "metaDescription": "мета-описание до 160 символов",
+                  "title": "заголовок — вопрос или конкретное утверждение, до 70 символов",
+                  "body": "полный текст в HTML (h2, h3, p, ul, ol, li, strong, em)",
+                  "metaDescription": "мета-описание до 160 символов: прямой ответ, а не интрига",
                   "keywords": "ключевые слова через запятую"
                 }
 
                 Не оборачивай ответ в markdown. Не добавляй текст до или после JSON.
                 Все кавычки внутри значений экранируй.""";
+    }
+
+    private String revisionPrompt(BlogPostEntity post, String instruction) {
+        return """
+                Текущая версия статьи.
+                Заголовок: %s
+                Текст: %s
+
+                Замечания редактора: %s
+
+                Перепиши статью целиком с учётом замечаний. Соблюдай все требования
+                к структуре и все запреты. Верни тот же JSON-объект."""
+                .formatted(post.getTitle(), post.getBody(), instruction);
     }
 
     private String userPrompt(TopicChoice choice) {

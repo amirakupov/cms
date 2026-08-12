@@ -472,7 +472,7 @@ import static org.mockito.Mockito.verify;
 
         service.regenerate(post, "правки");
 
-        assertThat(post.getSlug()).isEqualTo("kak-stress-vliyaet-na-serdce");
+        assertThat(post.getSlug()).isEqualTo("kak-stress-vliyaet-na-serdtse");
         assertThat(post.getTitle()).isEqualTo("Как стресс влияет на сердце");
     }
 
