@@ -31,7 +31,7 @@ class ContentGenerationServiceTest {
         repository = mock(BlogPostRepository.class);
         gptService = mock(YandexGptService.class);
         // Zero backoff: the retry-path test would otherwise sit through 15 seconds of sleeps.
-        service = new ContentGenerationService(gptService, repository, new ObjectMapper(), true, 0L);
+        service = new ContentGenerationService(gptService, repository, new ObjectMapper(), 0L);
     }
 
     @Test

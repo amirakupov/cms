@@ -10,9 +10,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -40,7 +38,6 @@ public class ContentGenerationService {
     private final YandexGptService gptService;
     private final BlogPostRepository blogPostRepository;
     private final ObjectMapper objectMapper;
-    private final boolean enabled;
     private final long retryBackoffMs;
 
     private static final List<String> TOPICS = List.of(
@@ -58,36 +55,19 @@ public class ContentGenerationService {
 
     public ContentGenerationService(YandexGptService gptService,
                                     BlogPostRepository blogPostRepository,
-                                    ObjectMapper objectMapper,
-                                    @Value("${content.generation.enabled:true}") boolean enabled) {
-        this(gptService, blogPostRepository, objectMapper, enabled, DEFAULT_RETRY_BACKOFF_MS);
+                                    ObjectMapper objectMapper) {
+        this(gptService, blogPostRepository, objectMapper, DEFAULT_RETRY_BACKOFF_MS);
     }
 
     /** Test seam: lets unit tests exercise the retry path without waiting out the backoff. */
     ContentGenerationService(YandexGptService gptService,
                              BlogPostRepository blogPostRepository,
                              ObjectMapper objectMapper,
-                             boolean enabled,
                              long retryBackoffMs) {
         this.gptService = gptService;
         this.blogPostRepository = blogPostRepository;
         this.objectMapper = objectMapper;
-        this.enabled = enabled;
         this.retryBackoffMs = retryBackoffMs;
-    }
-
-    @Scheduled(cron = "${content.generation.cron:0 0 8 * * *}")
-    public void generateDailyPost() {
-        if (!enabled) {
-            log.debug("Scheduled content generation is disabled");
-            return;
-        }
-        try {
-            BlogPostEntity post = generateNow();
-            log.info("Generated blog post id={} slug={} title={}", post.getId(), post.getSlug(), post.getTitle());
-        } catch (Exception e) {
-            log.error("Scheduled blog post generation failed after {} attempts", MAX_ATTEMPTS, e);
-        }
     }
 
     /**

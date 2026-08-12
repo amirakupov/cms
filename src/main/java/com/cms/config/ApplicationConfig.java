@@ -11,6 +11,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.time.Clock;
+
 @Configuration
 public class ApplicationConfig{
 
@@ -40,6 +42,12 @@ public class ApplicationConfig{
     @Bean
     AuthenticationManager authManager(AuthenticationConfiguration authConfiguraton) throws Exception{
         return authConfiguraton.getAuthenticationManager() ;
+    }
+
+    /** Injected rather than called statically so the cadence gate can be tested at a fixed instant. */
+    @Bean
+    Clock clock() {
+        return Clock.systemDefaultZone();
     }
 
 }
