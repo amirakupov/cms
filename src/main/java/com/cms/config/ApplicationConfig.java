@@ -11,6 +11,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.time.Clock;
+
 @Configuration
 public class ApplicationConfig{
 
@@ -40,6 +42,23 @@ public class ApplicationConfig{
     @Bean
     AuthenticationManager authManager(AuthenticationConfiguration authConfiguraton) throws Exception{
         return authConfiguraton.getAuthenticationManager() ;
+    }
+
+    /** Injected rather than called statically so the cadence gate can be tested at a fixed instant. */
+    @Bean
+    Clock clock() {
+        return Clock.systemDefaultZone();
+    }
+
+    /**
+     * Boot 4 ships Jackson 3 and auto-configures a tools.jackson.databind.ObjectMapper, but the
+     * services that parse third-party JSON by hand are written against Jackson 2, which is only
+     * on the classpath transitively via jjwt-jackson. Without this bean the context fails to
+     * start with "required a bean of type com.fasterxml.jackson.databind.ObjectMapper".
+     */
+    @Bean
+    com.fasterxml.jackson.databind.ObjectMapper legacyObjectMapper() {
+        return new com.fasterxml.jackson.databind.ObjectMapper();
     }
 
 }
