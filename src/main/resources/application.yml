@@ -3,29 +3,47 @@ spring:
     name: CMS-premium
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      # 'update' is what applies the new blog_post.source_topic column; there is no
+      # migration tool in this project yet.
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL:update}
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
   datasource:
     driverClassName: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/cms
-    username: amirakupov
-  security:
-    user:
-      name: admin
-      password: admin
-      roles: ADMIN
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${POSTGRESQL_USER}
+    password: ${POSTGRESQL_PASSWORD}
+  task:
+    scheduling:
+      pool:
+        # More than one thread so a slow generation run cannot stall other scheduled tasks.
+        size: 2
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
+
 app:
-  upload-dir: ./uploads
+  upload-dir: ${APP_UPLOAD_DIR}
+  cookie:
+    # Set to false only for local plain-HTTP development.
+    secure: ${APP_COOKIE_SECURE:true}
 
 yandex:
   gpt:
-    api-key: ${YANDEX_GPT_API_KEY:your-api-key}
-    folder-id: ${YANDEX_GPT_FOLDER_ID:your-folder-id}
-    model: yandexgpt/latest
+    api-key: ${YANDEX_GPT_API_KEY}
+    folder-id: ${YANDEX_GPT_FOLDER_ID}
+    model: ${YANDEX_GPT_MODEL:yandexgpt/latest}
+    # A 600-900 word HTML article wrapped in JSON does not fit into 2000 tokens.
+    max-tokens: ${YANDEX_GPT_MAX_TOKENS:8000}
+    temperature: ${YANDEX_GPT_TEMPERATURE:0.6}
+    connect-timeout-seconds: ${YANDEX_GPT_CONNECT_TIMEOUT:10}
+    read-timeout-seconds: ${YANDEX_GPT_READ_TIMEOUT:180}
 
 content:
   generation:
-    cron: "0 0 8 * * *"
+    enabled: ${CONTENT_GENERATION_ENABLED:true}
+    cron: ${CONTENT_GENERATION_CRON:0 0 8 * * *}
+
 jwt:
-  secret: "bmlnZ2EgZ2lnZ2EgbmlnZ2EgYmxhIGJsYSBuaWdnYSBmdWNrIGVuY3J5cHRpb24gbmlnZ2EgbmFtZQ=="
-  expirationMs: 86400000
+  secret: ${JWT_SECRET}
+  expirationMs: ${JWT_EXPIRATION_MS:86400000}

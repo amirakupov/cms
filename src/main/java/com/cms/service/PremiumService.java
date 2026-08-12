@@ -6,10 +6,12 @@ import com.cms.repo.BlogPostRepository;
 import com.cms.repo.DoctorRepository;
 import com.cms.repo.PageRepository;
 import com.cms.repo.ServiceRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +40,8 @@ public class PremiumService {
     }
 
     public ServiceResponseDto getOneService(Integer id){
-        return serviceRepository.findById(id).map(ServiceResponseDto::from).orElseThrow(()-> new RuntimeException("Service not found"));
+        return serviceRepository.findById(id).map(ServiceResponseDto::from)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
     }
 
     public ServiceResponseDto createNewService(ServiceRequestDto newService) {
@@ -137,7 +140,11 @@ public class PremiumService {
     }
 
     public PageResponseDto getPageBySlug(String slug) {
-        return pageRepository.findBySlug(slug).map(PageResponseDto::from)
+        // Anonymous visitors must not be able to read drafts by guessing the slug.
+        var found = isStaff()
+                ? pageRepository.findBySlug(slug)
+                : pageRepository.findBySlugAndStatus(slug, PageStatus.PUBLISHED);
+        return found.map(PageResponseDto::from)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Page not found"));
     }
 
@@ -172,7 +179,11 @@ public class PremiumService {
     }
 
     public BlogPostResponseDto getBlogPostBySlug(String slug) {
-        return blogPostRepository.findBySlug(slug).map(BlogPostResponseDto::from)
+        // AI drafts are unreviewed medical content - never expose them anonymously.
+        var found = isStaff()
+                ? blogPostRepository.findBySlug(slug)
+                : blogPostRepository.findBySlugAndStatus(slug, PageStatus.PUBLISHED);
+        return found.map(BlogPostResponseDto::from)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Blog post not found"));
     }
 
@@ -195,5 +206,16 @@ public class PremiumService {
     public void deleteBlogPost(Integer id) {
         if (!blogPostRepository.existsById(id)) throw new ResponseStatusException(NOT_FOUND, "Blog post not found");
         blogPostRepository.deleteById(id);
+    }
+
+    /** True when the current request is authenticated as CMS staff (ADMIN or EDITOR). */
+    private boolean isStaff() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return false;
+        }
+        return auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(a -> a.equals("ROLE_ADMIN") || a.equals("ROLE_EDITOR"));
     }
 }

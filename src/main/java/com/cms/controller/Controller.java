@@ -3,6 +3,7 @@ package com.cms.controller;
 import com.cms.dto.*;
 import com.cms.service.AuthService;
 import com.cms.service.PremiumService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseCookie;
@@ -16,34 +17,45 @@ public class Controller {
     private final PremiumService premiumService;
 
     private final AuthService authService;
-    
-    public Controller(PremiumService premiumService, AuthService authService) {
+
+    /** Must match jwt.expirationMs, otherwise the cookie dies while the token is still valid. */
+    private final long tokenTtlSeconds;
+
+    /** Off only for plain-HTTP local development; production must serve over HTTPS. */
+    private final boolean secureCookie;
+
+    public Controller(PremiumService premiumService,
+                      AuthService authService,
+                      @Value("${jwt.expirationMs:86400000}") long expirationMs,
+                      @Value("${app.cookie.secure:true}") boolean secureCookie) {
         this.premiumService = premiumService;
         this.authService = authService;
+        this.tokenTtlSeconds = expirationMs / 1000;
+        this.secureCookie = secureCookie;
     }
+
     //Todo: change to void
     @PostMapping("/login")
     public LoginResponse login(@RequestBody LoginRequest loginRequest, HttpServletResponse servletResponse){
         String token = authService.loginAndGetToken(loginRequest);
-        ResponseCookie cookie = ResponseCookie.from("access_token", token)
-                .httpOnly(true)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(60 * 60)
-                .build();
-
-        servletResponse.addHeader("Set-Cookie", cookie.toString());
+        servletResponse.addHeader("Set-Cookie", authCookie(token, tokenTtlSeconds).toString());
         return LoginResponse.builder().token(token).build();
     }
+
     @PostMapping("/logout")
     public void logout(HttpServletResponse servletResponse){
-        ResponseCookie cookie = ResponseCookie.from("access_token", "")
+        servletResponse.addHeader("Set-Cookie", authCookie("", 0).toString());
+    }
+
+    private ResponseCookie authCookie(String value, long maxAgeSeconds) {
+        return ResponseCookie.from("access_token", value)
                 .httpOnly(true)
-                .sameSite("Lax")
+                .secure(secureCookie)
+                // Strict, not Lax: the cookie authenticates state-changing calls and CSRF is off.
+                .sameSite("Strict")
                 .path("/")
-                .maxAge(0)
+                .maxAge(maxAgeSeconds)
                 .build();
-        servletResponse.addHeader("Set-Cookie", cookie.toString());
     }
     @GetMapping("/doctors")
     public List<DoctorsResponseDto> getAllDoctors(){

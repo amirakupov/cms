@@ -29,6 +29,16 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/cms/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/cms/logout").permitAll()
+
+                        // Uploaded media is public content served by StaticResourceConfig.
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+
+                        // Staff-only listings: these return DRAFT content and must never be
+                        // reachable anonymously. Declared before the public GET rule below.
+                        .requestMatchers(HttpMethod.GET, "/api/cms/blog/all", "/api/cms/pages/all")
+                        .hasAnyRole("ADMIN", "EDITOR")
+
                         .requestMatchers(HttpMethod.GET, "/api/cms/**").permitAll()
 
                         .requestMatchers(HttpMethod.POST, "/api/cms/**").hasRole("ADMIN")

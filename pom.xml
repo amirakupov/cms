@@ -49,6 +49,23 @@
             <version>0.4.20</version>
         </dependency>
 
+        <!-- ImageIO has no WebP writer in the stock JDK; without this every upload fails
+             with "No suitable ImageWriter found for webp". This build ships natives for
+             Linux x86_64/aarch64, Windows and macOS x86_64 - but NOT macOS arm64, so
+             MediaController probes the writer at startup and falls back to JPEG. -->
+        <dependency>
+            <groupId>com.github.gotson</groupId>
+            <artifactId>webp-imageio</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+
+        <!-- Sanitizes model-authored HTML before it is stored and rendered. -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.18.3</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -78,6 +95,15 @@
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
             <version>0.11.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

@@ -11,5 +11,6 @@ import java.util.Optional;
 @Repository
 public interface PageRepository extends JpaRepository<PageEntity, Integer> {
     Optional<PageEntity> findBySlug(String slug);
+    Optional<PageEntity> findBySlugAndStatus(String slug, PageStatus status);
     List<PageEntity> findByStatus(PageStatus status);
 }

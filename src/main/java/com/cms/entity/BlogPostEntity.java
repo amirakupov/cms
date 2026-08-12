@@ -22,7 +22,10 @@ public class BlogPostEntity {
     @Column(columnDefinition = "TEXT")
     private String body;
 
+    @Column(length = 512)
     private String metaDescription;
+
+    @Column(length = 512)
     private String keywords;
 
     @Enumerated(EnumType.STRING)
@@ -30,6 +33,10 @@ public class BlogPostEntity {
     private PageStatus status;
 
     private boolean aiGenerated;
+
+    /** Topic this post was generated from; drives topic rotation. Null for manual posts. */
+    @Column(length = 255)
+    private String sourceTopic;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
