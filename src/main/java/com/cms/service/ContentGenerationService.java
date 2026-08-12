@@ -10,6 +10,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -53,6 +54,11 @@ public class ContentGenerationService {
             "Сезонные заболевания: профилактика и лечение"
     );
 
+    /**
+     * Explicitly marked: the class has a second, test-only constructor, and Spring refuses to
+     * pick between two candidates on its own - it looks for a no-arg one and fails startup.
+     */
+    @Autowired
     public ContentGenerationService(YandexGptService gptService,
                                     BlogPostRepository blogPostRepository,
                                     ObjectMapper objectMapper) {
