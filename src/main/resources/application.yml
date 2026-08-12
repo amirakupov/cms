@@ -27,6 +27,8 @@ app:
   cookie:
     # Set to false only for local plain-HTTP development.
     secure: ${APP_COOKIE_SECURE:true}
+  # Used to link to a published post from the Telegram confirmation message.
+  site-base-url: ${SITE_BASE_URL:}
 
 yandex:
   gpt:
@@ -43,6 +45,20 @@ content:
   generation:
     enabled: ${CONTENT_GENERATION_ENABLED:true}
     cron: ${CONTENT_GENERATION_CRON:0 0 8 * * *}
+    # Whole days between posts: 1 daily, 3 every third day, 7 weekly. Deliberately not a
+    # cron field - a step of 3 in day-of-month collapses the gap at every month boundary.
+    interval-days: ${CONTENT_GENERATION_INTERVAL_DAYS:1}
+
+telegram:
+  # An empty token or chat id switches the bot off entirely: the app still boots and still
+  # generates, posts just stay drafts. Needed for local development and CI.
+  bot-token: ${TELEGRAM_BOT_TOKEN:}
+  admin-chat-id: ${TELEGRAM_ADMIN_CHAT_ID:}
+  poll-timeout-seconds: ${TELEGRAM_POLL_TIMEOUT:30}
+  # Must stay above poll-timeout-seconds or every idle long poll fails on read.
+  read-timeout-seconds: ${TELEGRAM_READ_TIMEOUT:40}
+  connect-timeout-seconds: ${TELEGRAM_CONNECT_TIMEOUT:10}
+  max-revisions: ${TELEGRAM_MAX_REVISIONS:5}
 
 jwt:
   secret: ${JWT_SECRET}
