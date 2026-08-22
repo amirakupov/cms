@@ -1,6 +1,11 @@
 spring:
   application:
     name: CMS-premium
+  config:
+    # Local development: read .env from the working directory so the app can be started
+    # straight from the IDE. Real environment variables outrank it, so a container that
+    # passes them in is unaffected, and the missing file is not an error in production.
+    import: optional:file:./.env[.properties]
   jpa:
     hibernate:
       # 'update' is what applies the new blog_post.source_topic column; there is no
