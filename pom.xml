@@ -50,13 +50,14 @@
         </dependency>
 
         <!-- ImageIO has no WebP writer in the stock JDK; without this every upload fails
-             with "No suitable ImageWriter found for webp". This build ships natives for
-             Linux x86_64/aarch64, Windows and macOS x86_64 - but NOT macOS arm64, so
-             MediaController probes the writer at startup and falls back to JPEG. -->
+             with "No suitable ImageWriter found for webp". Maintained fork of
+             com.github.gotson - same com.luciad SPI, but it also ships the macOS arm64
+             native, which gotson 0.2.2 lacked. MediaController still probes the writer
+             at startup and falls back to JPEG on platforms without a native. -->
         <dependency>
-            <groupId>com.github.gotson</groupId>
+            <groupId>com.github.usefulness</groupId>
             <artifactId>webp-imageio</artifactId>
-            <version>0.2.2</version>
+            <version>0.10.0</version>
         </dependency>
 
         <!-- Sanitizes model-authored HTML before it is stored and rendered. -->
